@@ -10,8 +10,17 @@
 #   CKV2_LAB_006  never privileged
 #   CKV2_LAB_007  explicit non-root user
 
+# Front network: carries the loopback-only port binding to the host.
 resource "docker_network" "lab" {
   name = "${var.name_prefix}-net"
+}
+
+# Scan network: internal = true means no route to the internet. The DAST
+# scanner joins ONLY this network, so its crawler physically cannot reach
+# third-party sites linked or embedded by the target (see LAB-OPS-01).
+resource "docker_network" "scan" {
+  name     = "${var.name_prefix}-scan"
+  internal = true
 }
 
 resource "docker_image" "juice_shop" {
@@ -43,6 +52,11 @@ resource "docker_container" "juice_shop" {
 
   networks_advanced {
     name    = docker_network.lab.name
+    aliases = ["juice-shop"]
+  }
+
+  networks_advanced {
+    name    = docker_network.scan.name
     aliases = ["juice-shop"]
   }
 }

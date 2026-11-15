@@ -9,8 +9,13 @@ output "internal_target_url" {
 }
 
 output "network_name" {
-  description = "Docker network shared by the target and the DAST scanner."
+  description = "Front Docker network that carries the loopback port binding."
   value       = docker_network.lab.name
+}
+
+output "scan_network_name" {
+  description = "Internal (no egress) network the DAST scanner must join."
+  value       = docker_network.scan.name
 }
 
 output "container_name" {
