@@ -14,3 +14,6 @@ reports/_raw/
 *.log
 .DS_Store
 Thumbs.db
+
+# CI-only output (never committed; uploaded as workflow artifacts)
+ci-reports/

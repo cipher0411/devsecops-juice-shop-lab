@@ -53,16 +53,16 @@ jobs:
 
       - name: terraform plan against the runner's local Docker engine
         run: |
-          mkdir -p reports/terraform
+          mkdir -p ci-reports/terraform
           docker run --rm -v "$PWD/terraform:/tf" -v /var/run/docker.sock:/var/run/docker.sock -w /tf \
-            "$TERRAFORM_IMAGE" plan -input=false -no-color -lock=false | tee reports/terraform/plan.txt
+            "$TERRAFORM_IMAGE" plan -input=false -no-color -lock=false | tee ci-reports/terraform/plan.txt
 
       - name: Upload plan
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: terraform-plan
-          path: reports/
+          path: ci-reports/
           retention-days: 30
 
   checkov:
@@ -79,18 +79,18 @@ jobs:
 
       - name: Checkov scan of terraform/
         run: |
-          mkdir -p reports/checkov/ci
+          mkdir -p ci-reports/checkov/ci
           docker run --rm -v "$PWD:/repo" -w /repo "$CHECKOV_IMAGE" \
             -d terraform --framework terraform \
             --external-checks-dir security/checkov/policies \
-            -o cli -o json -o sarif --output-file-path reports/checkov/ci
+            -o cli -o json -o sarif --output-file-path ci-reports/checkov/ci
 
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reports-checkov
-          path: reports/
+          path: ci-reports/
           retention-days: 30
 
   trivy-config:
@@ -104,18 +104,18 @@ jobs:
 
       - name: Trivy config scan
         run: |
-          mkdir -p reports/trivy
+          mkdir -p ci-reports/trivy
           docker run --rm -v "$PWD:/repo" -w /repo "$TRIVY_IMAGE" \
-            config --quiet --format json --output reports/trivy/trivy-config-repo.json \
-            --skip-dirs security/checkov/tests --skip-dirs security/semgrep/fixtures --skip-dirs reports .
+            config --quiet --format json --output ci-reports/trivy/trivy-config-repo.json \
+            --skip-dirs security/checkov/tests --skip-dirs security/semgrep/fixtures --skip-dirs reports --skip-dirs ci-reports .
           docker run --rm -v "$PWD:/repo" -w /repo "$TRIVY_IMAGE" \
             config --quiet --severity HIGH,CRITICAL --exit-code 1 \
-            --skip-dirs security/checkov/tests --skip-dirs security/semgrep/fixtures --skip-dirs reports .
+            --skip-dirs security/checkov/tests --skip-dirs security/semgrep/fixtures --skip-dirs reports --skip-dirs ci-reports .
 
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reports-trivy-config
-          path: reports/
+          path: ci-reports/
           retention-days: 30

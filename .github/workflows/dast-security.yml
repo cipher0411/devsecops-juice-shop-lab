@@ -73,22 +73,22 @@ jobs:
 
       - name: OWASP ZAP baseline scan
         run: |
-          mkdir -p reports/zap
-          cp security/zap/rules.tsv reports/zap/rules.tsv
-          chmod -R a+rwX reports/zap # ZAP runs as uid 1000 inside the container
-          docker run --rm --network juice-shop-lab-scan -v "$PWD/reports/zap:/zap/wrk:rw" "$ZAP_IMAGE" \
+          mkdir -p ci-reports/zap
+          cp security/zap/rules.tsv ci-reports/zap/rules.tsv
+          chmod -R a+rwX ci-reports/zap # ZAP runs as uid 1000 inside the container
+          docker run --rm --network juice-shop-lab-scan -v "$PWD/ci-reports/zap:/zap/wrk:rw" "$ZAP_IMAGE" \
             zap-baseline.py -t http://juice-shop:3000 -m 3 -j -I -c rules.tsv \
               -J zap-baseline.json -r zap-baseline.html -w zap-baseline.md
           python3 - <<'PY' # fail closed if ZAP talked to anything but the lab target
           import json, sys
-          sites = [s["@name"] for s in json.load(open("reports/zap/zap-baseline.json"))["site"]]
+          sites = [s["@name"] for s in json.load(open("ci-reports/zap/zap-baseline.json"))["site"]]
           print("sites contacted:", sites)
           sys.exit(0 if sites == ["http://juice-shop:3000"] else 1)
           PY
           {
             echo "## ZAP baseline - OWASP Juice Shop (lab)"
             echo
-            cat reports/zap/zap-baseline.md
+            cat ci-reports/zap/zap-baseline.md
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload ZAP reports
@@ -96,7 +96,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reports-zap
-          path: reports/
+          path: ci-reports/
           retention-days: 30
 
       - name: Destroy lab target (terraform destroy)
