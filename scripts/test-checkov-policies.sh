@@ -8,7 +8,7 @@ set -euo pipefail
 CHECKOV_IMAGE="${CHECKOV_IMAGE:-bridgecrew/checkov:3.4.5}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 POLICY_DIR="security/checkov/policies"
-expected=$(grep -h '^  id:' "$ROOT/$POLICY_DIR"/*.yaml | sed 's/.*"\(.*\)"/\1/' | tr -d '' | sort)
+expected=$(grep -h '^  id:' "$ROOT/$POLICY_DIR"/*.yaml | sed 's/.*"\(.*\)"/\1/' | tr -d '\r' | sort)
 
 scan() {
   docker run --rm -v "$ROOT:/repo" -w /repo "$CHECKOV_IMAGE" \
