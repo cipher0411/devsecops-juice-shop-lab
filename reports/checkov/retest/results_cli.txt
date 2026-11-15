@@ -1,0 +1,32 @@
+terraform scan results:
+
+Passed checks: 7, Failed checks: 0, Skipped checks: 0
+
+Check: CKV2_LAB_001: "Lab target ports must be published on 127.0.0.1 only (provider default is 0.0.0.0)"
+	PASSED for resource: docker_container.juice_shop
+	File: /main.tf:22-48
+	Guide: Set ports.ip = "127.0.0.1" so the intentionally vulnerable app is never reachable from the network.
+Check: CKV2_LAB_007: "Container must run as an explicit non-root user"
+	PASSED for resource: docker_container.juice_shop
+	File: /main.tf:22-48
+	Guide: Set user to a non-zero UID so the runtime identity does not depend on the image default.
+Check: CKV2_LAB_002: "Container must drop all Linux capabilities"
+	PASSED for resource: docker_container.juice_shop
+	File: /main.tf:22-48
+	Guide: Add capabilities { drop = ["ALL"] } and add back only what is proven necessary.
+Check: CKV2_LAB_003: "Container must set no-new-privileges"
+	PASSED for resource: docker_container.juice_shop
+	File: /main.tf:22-48
+	Guide: Add security_opts = ["no-new-privileges:true"] to block setuid privilege escalation.
+Check: CKV2_LAB_004: "Container must have a memory limit"
+	PASSED for resource: docker_container.juice_shop
+	File: /main.tf:22-48
+	Guide: Set memory (MB) so a runaway or attacked process cannot starve the host.
+Check: CKV2_LAB_005: "Images must be pinned by sha256 digest, not a mutable tag"
+	PASSED for resource: docker_image.juice_shop
+	File: /main.tf:17-20
+	Guide: Reference images as name:tag@sha256:<digest> so a re-pushed tag cannot silently change what runs.
+Check: CKV2_LAB_006: "Container must not run privileged"
+	PASSED for resource: docker_container.juice_shop
+	File: /main.tf:22-48
+	Guide: Never set privileged = true on the lab target.
