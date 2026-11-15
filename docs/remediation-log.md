@@ -73,6 +73,11 @@ ZAP component honouring it.
   if ZAP's report lists any site other than `http://juice-shop:3000`**.
 
 **Retest.** `sites contacted: ['http://juice-shop:3000']`, down from 28 to 1.
+The ZAP report's *Insights* table now shows about 50% "network failures" and
+around 1,100 logged errors. Those are the browser's blocked attempts to load
+third-party resources, so they are expected evidence that the control
+works. CI confirms the same on GitHub's runner (`dast-security` log:
+`egress blocked as expected`, `sites contacted: ['http://juice-shop:3000']`).
 
 ---
 

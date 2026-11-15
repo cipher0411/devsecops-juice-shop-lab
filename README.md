@@ -36,6 +36,19 @@ Full details: **[findings register](docs/findings-register.md)** ·
 **[threat model](docs/threat-model.md)** ·
 **[test plan and baseline](docs/test-plan.md)** · raw evidence in **[reports/](reports)**
 
+## Evidence screenshots
+
+Captured from the real runs. The workflow pages are public:
+[Actions](https://github.com/cipher0411/devsecops-juice-shop-lab/actions).
+
+| ci-security (all gates green) | dast-security (Terraform → ZAP → destroy) |
+|---|---|
+| ![ci-security run](screenshots/01-ci-security-run.png) | ![dast-security run](screenshots/03-dast-security-run.png) |
+| **terraform-security** | **ZAP baseline report (only `juice-shop:3000` in scope)** |
+| ![terraform-security run](screenshots/02-terraform-security-run.png) | ![ZAP report](screenshots/04-zap-baseline-report.png) |
+
+Lab target running on loopback: [screenshots/05-juice-shop-loopback.png](screenshots/05-juice-shop-loopback.png)
+
 ## Architecture
 
 ![DevSecOps lab architecture](docs/lab-architecture.png)
