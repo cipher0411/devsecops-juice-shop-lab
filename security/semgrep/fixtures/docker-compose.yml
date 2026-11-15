@@ -1,0 +1,13 @@
+services:
+  bad:
+    ports:
+      # ruleid: compose-port-published-on-all-interfaces
+      - "3000:3000"
+      # ruleid: compose-port-published-on-all-interfaces
+      - 8080:80/tcp
+  good:
+    ports:
+      # ok: compose-port-published-on-all-interfaces
+      - "127.0.0.1:3000:3000"
+      # ok: compose-port-published-on-all-interfaces
+      - "3000"

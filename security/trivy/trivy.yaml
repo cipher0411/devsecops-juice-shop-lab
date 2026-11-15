@@ -1,0 +1,17 @@
+# Shared Trivy settings (trivy --config security/trivy/trivy.yaml ...)
+format: json
+severity:
+  - UNKNOWN
+  - LOW
+  - MEDIUM
+  - HIGH
+  - CRITICAL
+scan:
+  scanners:
+    - vuln
+    - misconfig
+    - secret
+pkg:
+  types:
+    - os
+    - library

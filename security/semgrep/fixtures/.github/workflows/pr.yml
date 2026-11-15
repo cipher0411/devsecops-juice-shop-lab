@@ -1,0 +1,5 @@
+# ok: gha-pull-request-target
+on:
+  pull_request:
+    branches: [main]
+jobs: {}

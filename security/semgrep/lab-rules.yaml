@@ -1,0 +1,40 @@
+rules:
+  - id: compose-port-published-on-all-interfaces
+    message: >-
+      Port mapping '$...' publishes on every host interface (0.0.0.0). For an
+      intentionally vulnerable lab target, bind to loopback instead, e.g.
+      "127.0.0.1:3000:3000".
+    severity: ERROR
+    languages: [regex]
+    paths:
+      include:
+        - "*compose*.yml"
+        - "*compose*.yaml"
+    pattern-regex: '(?m)^\s*-\s*["'']?\d{1,5}:\d{1,5}(/(tcp|udp))?["'']?\s*$'
+    metadata:
+      category: security
+      cwe: "CWE-668: Exposure of Resource to Wrong Sphere"
+      references:
+        - https://docs.docker.com/engine/network/packet-filtering-firewalls/#port-publishing-and-mapping
+
+  - id: gha-pull-request-target
+    message: >-
+      'pull_request_target' runs untrusted fork code with a privileged token
+      and secrets. Use 'pull_request' for security scanning workflows.
+    severity: ERROR
+    languages: [yaml]
+    paths:
+      include:
+        - ".github/workflows/*.yml"
+        - ".github/workflows/*.yaml"
+    pattern-either:
+      - pattern: |
+          on:
+            ...
+            pull_request_target: $X
+            ...
+      - pattern: |
+          on: [..., pull_request_target, ...]
+    metadata:
+      category: security
+      cwe: "CWE-829: Inclusion of Functionality from Untrusted Control Sphere"

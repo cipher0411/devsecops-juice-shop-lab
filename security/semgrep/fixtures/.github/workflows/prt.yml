@@ -1,0 +1,5 @@
+# ruleid: gha-pull-request-target
+on:
+  pull_request_target:
+    branches: [main]
+jobs: {}

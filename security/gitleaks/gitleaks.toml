@@ -1,0 +1,14 @@
+# Gitleaks configuration for this repository.
+# Extends the built-in ruleset. Any allowlist entry must name a reason,
+# an owner and be as narrow as possible (see docs/security-gate-policy.md).
+title = "devsecops-juice-shop-lab"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Paths that are never part of this repository's own code"
+paths = [
+  '''^target/''',          # upstream Juice Shop clone, scanned separately
+  '''^reports/''',         # scanner output (already redacted)
+]
