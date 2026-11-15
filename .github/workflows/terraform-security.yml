@@ -1,0 +1,121 @@
+name: terraform-security
+
+# Infrastructure-as-Code checks. Every job here is gating: this is code we own.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "docker/**"
+      - "security/checkov/**"
+      - "scripts/test-checkov-policies.sh"
+      - ".github/workflows/terraform-security.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "docker/**"
+      - "security/checkov/**"
+      - "scripts/test-checkov-policies.sh"
+      - ".github/workflows/terraform-security.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-security-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TERRAFORM_IMAGE: hashicorp/terraform:1.17.2@sha256:6e9c1e647c31a960dc9b59e13272f9111d90010c10b717f77ffb324767660475
+  CHECKOV_IMAGE: bridgecrew/checkov:3.4.5@sha256:122602cf32cc72286155d39f1f234b7b594818f7b8d7fdf490701620e521368b
+  TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+
+jobs:
+  terraform:
+    name: Terraform fmt / validate / plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: terraform fmt -check
+        run: docker run --rm -v "$PWD/terraform:/tf" -w /tf "$TERRAFORM_IMAGE" fmt -check -recursive -diff
+
+      - name: terraform init (no backend) + validate
+        run: |
+          docker run --rm -v "$PWD/terraform:/tf" -w /tf "$TERRAFORM_IMAGE" init -backend=false -input=false -lockfile=readonly
+          docker run --rm -v "$PWD/terraform:/tf" -w /tf "$TERRAFORM_IMAGE" validate -no-color
+
+      - name: terraform plan against the runner's local Docker engine
+        run: |
+          mkdir -p reports/terraform
+          docker run --rm -v "$PWD/terraform:/tf" -v /var/run/docker.sock:/var/run/docker.sock -w /tf \
+            "$TERRAFORM_IMAGE" plan -input=false -no-color -lock=false | tee reports/terraform/plan.txt
+
+      - name: Upload plan
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: terraform-plan
+          path: reports/
+          retention-days: 30
+
+  checkov:
+    name: Checkov - built-in + CKV2_LAB_* policies (gating)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Unit-test custom policies (must fail on insecure fixture, pass on terraform/)
+        run: bash scripts/test-checkov-policies.sh
+
+      - name: Checkov scan of terraform/
+        run: |
+          mkdir -p reports/checkov/ci
+          docker run --rm -v "$PWD:/repo" -w /repo "$CHECKOV_IMAGE" \
+            -d terraform --framework terraform \
+            --external-checks-dir security/checkov/policies \
+            -o cli -o json -o sarif --output-file-path reports/checkov/ci
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports-checkov
+          path: reports/
+          retention-days: 30
+
+  trivy-config:
+    name: Trivy IaC misconfiguration (gating on HIGH/CRITICAL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Trivy config scan
+        run: |
+          mkdir -p reports/trivy
+          docker run --rm -v "$PWD:/repo" -w /repo "$TRIVY_IMAGE" \
+            config --quiet --format json --output reports/trivy/trivy-config-repo.json \
+            --skip-dirs security/checkov/tests --skip-dirs security/semgrep/fixtures --skip-dirs reports .
+          docker run --rm -v "$PWD:/repo" -w /repo "$TRIVY_IMAGE" \
+            config --quiet --severity HIGH,CRITICAL --exit-code 1 \
+            --skip-dirs security/checkov/tests --skip-dirs security/semgrep/fixtures --skip-dirs reports .
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports-trivy-config
+          path: reports/
+          retention-days: 30

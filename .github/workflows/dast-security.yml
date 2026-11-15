@@ -1,0 +1,106 @@
+name: dast-security
+
+# Provision the lab target with Terraform on the ephemeral runner, run an
+# OWASP ZAP baseline (passive) scan, then destroy everything.
+#   * target published on 127.0.0.1 only
+#   * ZAP joins ONLY the internal (no-egress) scan network, so its crawler
+#     cannot reach third-party sites the target links to (LAB-OPS-01)
+#   * ZAP add-ons are baked into a hermetic image because the scan network
+#     has no internet access (security/zap/Dockerfile)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "security/zap/**"
+      - ".github/workflows/dast-security.yml"
+  schedule:
+    - cron: "17 6 * * 1" # weekly, Monday 06:17 UTC - catches new passive rules
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dast-security
+  cancel-in-progress: false
+
+env:
+  TERRAFORM_IMAGE: hashicorp/terraform:1.17.2@sha256:6e9c1e647c31a960dc9b59e13272f9111d90010c10b717f77ffb324767660475
+  ZAP_IMAGE: juice-shop-lab/zap:ci # built from security/zap/Dockerfile (digest-pinned base)
+
+jobs:
+  zap-baseline:
+    name: Terraform up -> ZAP baseline -> Terraform destroy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Provision lab target (terraform apply)
+        run: |
+          tf() { docker run --rm -v "$PWD/terraform:/tf" -v /var/run/docker.sock:/var/run/docker.sock -w /tf "$TERRAFORM_IMAGE" "$@"; }
+          tf init -input=false -lockfile=readonly
+          tf apply -auto-approve -input=false -no-color
+
+      - name: Verify isolation and wait for the target
+        run: |
+          docker inspect juice-shop-lab-app \
+            --format 'bindings={{json .HostConfig.PortBindings}} user={{.Config.User}} capdrop={{.HostConfig.CapDrop}} secopt={{.HostConfig.SecurityOpt}}'
+          host_ip="$(docker inspect juice-shop-lab-app --format '{{(index (index .HostConfig.PortBindings "3000/tcp") 0).HostIp}}')"
+          if [ "$host_ip" != "127.0.0.1" ]; then
+            echo "::error::Target is published on '$host_ip', expected 127.0.0.1 only"; exit 1
+          fi
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3000/; then echo "target is up"; break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3000/rest/admin/application-version
+
+      - name: Build hermetic ZAP image
+        run: docker build --pull -t "$ZAP_IMAGE" security/zap
+
+      - name: Verify scan network has no egress
+        run: |
+          test "$(docker network inspect juice-shop-lab-scan --format '{{.Internal}}')" = "true"
+          if docker run --rm --network juice-shop-lab-scan --entrypoint curl "$ZAP_IMAGE" -s -m 5 -o /dev/null https://github.com; then
+            echo "::error::scan network can reach the internet"; exit 1
+          fi
+          echo "egress blocked as expected"
+
+      - name: OWASP ZAP baseline scan
+        run: |
+          mkdir -p reports/zap
+          cp security/zap/rules.tsv reports/zap/rules.tsv
+          chmod -R a+rwX reports/zap # ZAP runs as uid 1000 inside the container
+          docker run --rm --network juice-shop-lab-scan -v "$PWD/reports/zap:/zap/wrk:rw" "$ZAP_IMAGE" \
+            zap-baseline.py -t http://juice-shop:3000 -m 3 -j -I -c rules.tsv \
+              -J zap-baseline.json -r zap-baseline.html -w zap-baseline.md
+          python3 - <<'PY' # fail closed if ZAP talked to anything but the lab target
+          import json, sys
+          sites = [s["@name"] for s in json.load(open("reports/zap/zap-baseline.json"))["site"]]
+          print("sites contacted:", sites)
+          sys.exit(0 if sites == ["http://juice-shop:3000"] else 1)
+          PY
+          {
+            echo "## ZAP baseline - OWASP Juice Shop (lab)"
+            echo
+            cat reports/zap/zap-baseline.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports-zap
+          path: reports/
+          retention-days: 30
+
+      - name: Destroy lab target (terraform destroy)
+        if: always()
+        run: |
+          docker run --rm -v "$PWD/terraform:/tf" -v /var/run/docker.sock:/var/run/docker.sock -w /tf \
+            "$TERRAFORM_IMAGE" destroy -auto-approve -input=false -no-color
