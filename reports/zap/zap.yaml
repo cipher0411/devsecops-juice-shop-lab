@@ -1,0 +1,96 @@
+env:
+  contexts:
+  - excludePaths: []
+    name: baseline
+    urls:
+    - http://juice-shop:3000
+  parameters:
+    failOnError: true
+    progressToStdout: false
+jobs:
+- parameters:
+    enableTags: false
+    maxAlertsPerRule: 10
+  type: passiveScan-config
+- parameters:
+    maxDuration: 3
+    url: http://juice-shop:3000
+  type: spider
+- parameters:
+    maxDuration: 3
+    url: http://juice-shop:3000
+  type: spiderClient
+- parameters:
+    maxDuration: 0
+  type: passiveScan-wait
+- parameters:
+    format: Long
+    summaryFile: /home/zap/zap_out.json
+  rules:
+  - action: WARN
+    customMessage: ''
+    id: 10020
+  - action: WARN
+    customMessage: ''
+    id: 10021
+  - action: WARN
+    customMessage: ''
+    id: 10024
+  - action: WARN
+    customMessage: ''
+    id: 10028
+  - action: WARN
+    customMessage: ''
+    id: 10038
+  - action: INFO
+    customMessage: ''
+    id: 10049
+  - action: WARN
+    customMessage: ''
+    id: 10063
+  - action: INFO
+    customMessage: ''
+    id: 10096
+  - action: WARN
+    customMessage: ''
+    id: 10098
+  - action: IGNORE
+    customMessage: ''
+    id: 10109
+  - action: WARN
+    customMessage: ''
+    id: 10110
+  - action: WARN
+    customMessage: ''
+    id: 2
+  - action: WARN
+    customMessage: ''
+    id: 3
+  - action: WARN
+    customMessage: ''
+    id: 90004
+  - action: WARN
+    customMessage: ''
+    id: 90022
+  type: outputSummary
+- parameters:
+    reportDescription: ''
+    reportDir: /zap/wrk/
+    reportFile: zap-baseline.html
+    reportTitle: ZAP Scanning Report
+    template: traditional-html
+  type: report
+- parameters:
+    reportDescription: ''
+    reportDir: /zap/wrk/
+    reportFile: zap-baseline.md
+    reportTitle: ZAP Scanning Report
+    template: traditional-md
+  type: report
+- parameters:
+    reportDescription: ''
+    reportDir: /zap/wrk/
+    reportFile: zap-baseline.json
+    reportTitle: ZAP Scanning Report
+    template: traditional-json
+  type: report

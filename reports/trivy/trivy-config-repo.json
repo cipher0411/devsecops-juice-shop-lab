@@ -1,0 +1,32 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.76.2"
+  },
+  "ReportID": "01a1df27-9642-7730-bbc5-4c3072d46157",
+  "CreatedAt": "2026-11-15T12:21:15.970473969Z",
+  "ArtifactID": "sha256:9c52b98c8e9a7a2c604625eabd976b0e75793eefa292118c372e28a4b6f06855",
+  "ArtifactName": ".",
+  "ArtifactType": "repository",
+  "Metadata": {},
+  "Results": [
+    {
+      "Target": "security/zap/Dockerfile",
+      "Class": "config",
+      "Type": "dockerfile",
+      "MisconfSummary": {
+        "Successes": 27,
+        "Failures": 0
+      }
+    },
+    {
+      "Target": "terraform",
+      "Class": "config",
+      "Type": "terraform",
+      "MisconfSummary": {
+        "Successes": 51,
+        "Failures": 0
+      }
+    }
+  ]
+}
