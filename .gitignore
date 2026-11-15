@@ -1,0 +1,16 @@
+# Upstream Juice Shop source is cloned here for scanning only - never committed
+target/
+
+# Terraform working files and state (state can contain sensitive values)
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Raw scanner scratch output (curated reports are committed under reports/)
+reports/_raw/
+.semgrep/
+*.log
+.DS_Store
+Thumbs.db
