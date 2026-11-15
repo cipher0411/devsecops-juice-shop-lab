@@ -1,0 +1,46 @@
+# Alternative to terraform/ for running the lab by hand.
+#   docker compose -f docker/docker-compose.yml up -d            # target only
+#   docker compose -f docker/docker-compose.yml --profile dast run --rm zap
+# Same hardening as terraform/main.tf. Loopback only - never 0.0.0.0.
+name: juice-shop-lab
+
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:v20.4.0@sha256:9bbaecc41791f00b002bc65931cc5ff355fbdb941fa72b06558c18dace43197b
+    container_name: juice-shop-lab-app
+    user: "65532"
+    restart: "no"
+    ports:
+      - "127.0.0.1:${JUICE_SHOP_PORT:-3000}:3000"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 256
+    networks:
+      lab:
+        aliases: [juice-shop]
+      scan:
+        aliases: [juice-shop]
+
+  zap:
+    profiles: [dast]
+    build: ../security/zap # hermetic image: add-ons baked in, no egress needed
+    image: juice-shop-lab/zap:local
+    depends_on: [juice-shop]
+    command: >
+      zap-baseline.py -t http://juice-shop:3000 -m 3 -j -I
+      -c rules.tsv
+      -J zap-baseline.json -r zap-baseline.html -w zap-baseline.md
+    volumes:
+      - ../security/zap/rules.tsv:/zap/wrk/rules.tsv:ro
+      - ../reports/zap:/zap/wrk/:rw
+    networks: [scan] # internal only - the crawler cannot leave the lab
+
+networks:
+  lab:
+    name: juice-shop-lab-net
+  scan:
+    name: juice-shop-lab-scan
+    internal: true
