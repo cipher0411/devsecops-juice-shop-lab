@@ -1,0 +1,11 @@
+metadata:
+  id: "CKV2_LAB_004"
+  name: "Container must have a memory limit"
+  category: "GENERAL_SECURITY"
+  guideline: "Set memory (MB) so a runaway or attacked process cannot starve the host."
+definition:
+  cond_type: attribute
+  resource_types:
+    - docker_container
+  attribute: memory
+  operator: exists

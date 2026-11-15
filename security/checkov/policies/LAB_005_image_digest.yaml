@@ -1,0 +1,12 @@
+metadata:
+  id: "CKV2_LAB_005"
+  name: "Images must be pinned by sha256 digest, not a mutable tag"
+  category: "SUPPLY_CHAIN"
+  guideline: "Reference images as name:tag@sha256:<digest> so a re-pushed tag cannot silently change what runs."
+definition:
+  cond_type: attribute
+  resource_types:
+    - docker_image
+  attribute: name
+  operator: contains
+  value: "@sha256:"

@@ -1,0 +1,12 @@
+metadata:
+  id: "CKV2_LAB_002"
+  name: "Container must drop all Linux capabilities"
+  category: "GENERAL_SECURITY"
+  guideline: "Add capabilities { drop = [\"ALL\"] } and add back only what is proven necessary."
+definition:
+  cond_type: attribute
+  resource_types:
+    - docker_container
+  attribute: capabilities.drop
+  operator: contains
+  value: "ALL"

@@ -1,0 +1,12 @@
+metadata:
+  id: "CKV2_LAB_003"
+  name: "Container must set no-new-privileges"
+  category: "GENERAL_SECURITY"
+  guideline: "Add security_opts = [\"no-new-privileges:true\"] to block setuid privilege escalation."
+definition:
+  cond_type: attribute
+  resource_types:
+    - docker_container
+  attribute: security_opts
+  operator: contains
+  value: "no-new-privileges:true"

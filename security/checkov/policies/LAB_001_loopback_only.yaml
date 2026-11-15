@@ -1,0 +1,12 @@
+metadata:
+  id: "CKV2_LAB_001"
+  name: "Lab target ports must be published on 127.0.0.1 only (provider default is 0.0.0.0)"
+  category: "NETWORKING"
+  guideline: "Set ports.ip = \"127.0.0.1\" so the intentionally vulnerable app is never reachable from the network."
+definition:
+  cond_type: attribute
+  resource_types:
+    - docker_container
+  attribute: ports.ip
+  operator: equals
+  value: "127.0.0.1"

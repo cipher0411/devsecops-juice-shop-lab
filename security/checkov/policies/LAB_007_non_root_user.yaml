@@ -1,0 +1,24 @@
+metadata:
+  id: "CKV2_LAB_007"
+  name: "Container must run as an explicit non-root user"
+  category: "GENERAL_SECURITY"
+  guideline: "Set user to a non-zero UID so the runtime identity does not depend on the image default."
+definition:
+  and:
+    - cond_type: attribute
+      resource_types:
+        - docker_container
+      attribute: user
+      operator: exists
+    - cond_type: attribute
+      resource_types:
+        - docker_container
+      attribute: user
+      operator: not_starting_with
+      value: "0"
+    - cond_type: attribute
+      resource_types:
+        - docker_container
+      attribute: user
+      operator: not_equals
+      value: "root"

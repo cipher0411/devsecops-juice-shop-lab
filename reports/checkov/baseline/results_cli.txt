@@ -1,0 +1,114 @@
+terraform scan results:
+
+Passed checks: 1, Failed checks: 6, Skipped checks: 0
+
+Check: CKV2_LAB_001: "Lab target ports must be published on 127.0.0.1 only (provider default is 0.0.0.0)"
+	FAILED for resource: docker_container.juice_shop
+	File: /main.tf:13-26
+	Guide: Set ports.ip = "127.0.0.1" so the intentionally vulnerable app is never reachable from the network.
+
+		13 | resource "docker_container" "juice_shop" {
+		14 |   name  = "${var.name_prefix}-app"
+		15 |   image = docker_image.juice_shop.image_id
+		16 | 
+		17 |   ports {
+		18 |     internal = 3000
+		19 |     external = var.host_port
+		20 |   }
+		21 | 
+		22 |   networks_advanced {
+		23 |     name    = docker_network.lab.name
+		24 |     aliases = ["juice-shop"]
+		25 |   }
+		26 | }
+
+Check: CKV2_LAB_002: "Container must drop all Linux capabilities"
+	FAILED for resource: docker_container.juice_shop
+	File: /main.tf:13-26
+	Guide: Add capabilities { drop = ["ALL"] } and add back only what is proven necessary.
+
+		13 | resource "docker_container" "juice_shop" {
+		14 |   name  = "${var.name_prefix}-app"
+		15 |   image = docker_image.juice_shop.image_id
+		16 | 
+		17 |   ports {
+		18 |     internal = 3000
+		19 |     external = var.host_port
+		20 |   }
+		21 | 
+		22 |   networks_advanced {
+		23 |     name    = docker_network.lab.name
+		24 |     aliases = ["juice-shop"]
+		25 |   }
+		26 | }
+
+Check: CKV2_LAB_007: "Container must run as an explicit non-root user"
+	FAILED for resource: docker_container.juice_shop
+	File: /main.tf:13-26
+	Guide: Set user to a non-zero UID so the runtime identity does not depend on the image default.
+
+		13 | resource "docker_container" "juice_shop" {
+		14 |   name  = "${var.name_prefix}-app"
+		15 |   image = docker_image.juice_shop.image_id
+		16 | 
+		17 |   ports {
+		18 |     internal = 3000
+		19 |     external = var.host_port
+		20 |   }
+		21 | 
+		22 |   networks_advanced {
+		23 |     name    = docker_network.lab.name
+		24 |     aliases = ["juice-shop"]
+		25 |   }
+		26 | }
+
+Check: CKV2_LAB_003: "Container must set no-new-privileges"
+	FAILED for resource: docker_container.juice_shop
+	File: /main.tf:13-26
+	Guide: Add security_opts = ["no-new-privileges:true"] to block setuid privilege escalation.
+
+		13 | resource "docker_container" "juice_shop" {
+		14 |   name  = "${var.name_prefix}-app"
+		15 |   image = docker_image.juice_shop.image_id
+		16 | 
+		17 |   ports {
+		18 |     internal = 3000
+		19 |     external = var.host_port
+		20 |   }
+		21 | 
+		22 |   networks_advanced {
+		23 |     name    = docker_network.lab.name
+		24 |     aliases = ["juice-shop"]
+		25 |   }
+		26 | }
+
+Check: CKV2_LAB_004: "Container must have a memory limit"
+	FAILED for resource: docker_container.juice_shop
+	File: /main.tf:13-26
+	Guide: Set memory (MB) so a runaway or attacked process cannot starve the host.
+
+		13 | resource "docker_container" "juice_shop" {
+		14 |   name  = "${var.name_prefix}-app"
+		15 |   image = docker_image.juice_shop.image_id
+		16 | 
+		17 |   ports {
+		18 |     internal = 3000
+		19 |     external = var.host_port
+		20 |   }
+		21 | 
+		22 |   networks_advanced {
+		23 |     name    = docker_network.lab.name
+		24 |     aliases = ["juice-shop"]
+		25 |   }
+		26 | }
+
+Check: CKV2_LAB_005: "Images must be pinned by sha256 digest, not a mutable tag"
+	FAILED for resource: docker_image.juice_shop
+	File: /main.tf:8-11
+	Guide: Reference images as name:tag@sha256:<digest> so a re-pushed tag cannot silently change what runs.
+
+		8  | resource "docker_image" "juice_shop" {
+		9  |   name         = var.juice_shop_image
+		10 |   keep_locally = true
+		11 | }
+
